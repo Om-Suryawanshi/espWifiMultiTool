@@ -5,6 +5,7 @@
 
 bool loadConfig();
 void listFS();
+void scanWifi();
 
 void printStatus(String status)
 {
@@ -30,16 +31,12 @@ void setup()
     status = "ConfigLoaded";
     server.begin(ssid, pswd);
   }
-  status = "Something fked up";
-  Scan scan;
-  scan.beginScan();
 }
 
 void loop()
 {
   server.handle();
-  printStatus(status);
-  delay(1000);
+  // printStatus(status);
 }
 
 bool loadConfig()

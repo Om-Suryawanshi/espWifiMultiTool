@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wi-Fi Scanner</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: auto;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        #status-message {
+            text-align: center;
+            font-style: italic;
+            color: #555;
+        }
+
+        #networks-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        #networks-table th,
+        #networks-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        #networks-table th {
+            background-color: #f2f2f2;
+        }
+
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #09f;
+            animation: spin 1s ease infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            margin-top: 20px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Wi-Fi Scan</h1>
+        <div id="status-message"></div>
+
+        <div class="spinner-container" style="display: none;">
+            <div class="spinner"></div>
+        </div>
+
+        <table id="networks-table">
+            <thead>
+                <tr>
+                    <th>SSID</th>
+                    <th>RSSI (dBm)</th>
+                    <th>Encryption</th>
+                    <th>BSSID</th>
+                </tr>
+            </thead>
+            <tbody id="networks-list"></tbody>
+        </table>
+
+        <button id="rescan-button">Rescan</button>
+    </div>
+
+    <script>
+        const statusMessage = document.getElementById('status-message');
+        const networksList = document.getElementById('networks-list');
+        const spinnerContainer = document.querySelector('.spinner-container');
+        const rescanButton = document.getElementById('rescan-button');
+
+        async function fetchScanResults() {
+            // Set initial UI state for a scan check
+            statusMessage.textContent = 'Checking scan status...';
+            spinnerContainer.style.display = 'block';
+            rescanButton.disabled = true;
+
+            try {
+                const response = await fetch('/api/scan', { method: 'GET' });
+                const data = await response.json();
+
+                // Handle different statuses from the server
+                if (response.status === 202) {
+                    if (data.status === 'in_progress') {
+                        statusMessage.textContent = 'Scanning for networks...';
+                        // Poll again after a short delay
+                        setTimeout(fetchScanResults, 2000);
+                    } else {
+                        // This is a safety catch, though it shouldn't happen
+                        statusMessage.textContent = 'Unexpected server status. Retrying...';
+                        setTimeout(fetchScanResults, 2000);
+                    }
+                } else if (response.ok) {
+                    // If status is 200 OK and data is valid
+                    displayNetworks(data.networks); // Access the nested 'networks' array
+                    statusMessage.textContent = `Found ${data.networks.length} networks.`;
+                    spinnerContainer.style.display = 'none';
+                    rescanButton.disabled = false;
+                } else {
+                    // Handle 500 errors or other issues
+                    statusMessage.textContent = 'Server error. Please try again.';
+                    spinnerContainer.style.display = 'none';
+                    rescanButton.disabled = false;
+                    console.error('Server responded with an error:', data);
+                }
+            } catch (error) {
+                statusMessage.textContent = 'Failed to fetch scan results. Please try again.';
+                spinnerContainer.style.display = 'none';
+                rescanButton.disabled = false;
+                console.error('Error fetching data:', error);
+            }
+        }
+
+        async function startRescan() {
+            statusMessage.textContent = 'Sending scan request...';
+            rescanButton.disabled = true;
+            try {
+                const response = await fetch('/api/scan', { method: 'POST' });
+                const data = await response.json();
+
+                // Handle the different POST response statuses
+                if (data.status === 'scan_req_initiated') {
+                    statusMessage.textContent = 'Scan initiated successfully!';
+                    fetchScanResults(); // Start the polling loop
+                } else if (data.status === 'scan_req_processing') {
+                    statusMessage.textContent = 'Scan is already running. Please wait.';
+                    fetchScanResults(); // Start the polling loop
+                } else {
+                    statusMessage.textContent = 'Failed to start a new scan. Unexpected response.';
+                    rescanButton.disabled = false;
+                }
+            } catch (error) {
+                statusMessage.textContent = 'Error sending rescan request.';
+                console.error('Rescan error:', error);
+                rescanButton.disabled = false;
+            }
+        }
+
+        function displayNetworks(networks) {
+            networksList.innerHTML = '';
+            if (!networks || networks.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td colspan="3" style="text-align: center;">No networks found.</td>`;
+                networksList.appendChild(row);
+                return;
+            }
+
+            networks.forEach(network => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                <td>${network.ssid}</td>
+                <td>${network.rssi}</td>
+                <td>${network.enc}</td>
+                <td>${network.bssid}</td>
+            `;
+                networksList.appendChild(row);
+            });
+        }
+
+        rescanButton.addEventListener('click', startRescan);
+
+        // Initial fetch on page load
+        fetchScanResults();
+    </script>
+</body>
+
+</html>
