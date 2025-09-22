@@ -40,6 +40,7 @@ void ServerManager::begin(const char *ssid, const char *password)
         file.close(); 
     });
 
+    // Scan backend called by /scan
     webServer.on("/api/scan", HTTP_GET, [this]() 
     {
         if(scan.isSafe())
@@ -58,6 +59,7 @@ void ServerManager::begin(const char *ssid, const char *password)
         }
     });
 
+    // Scan wifi trigger POST
     webServer.on("/api/scan", HTTP_POST, [this]() 
     {
         if(scan.isSafe())
@@ -69,6 +71,22 @@ void ServerManager::begin(const char *ssid, const char *password)
         {
             webServer.send(202, "application/json", "{\"status\":\"scan_req_processing\"}");
         }
+    });
+
+    webServer.on("/startbeacon", HTTP_GET, [this]() 
+    {
+        attack.loadSSIDs("ssid_nsfw.txt");
+        WiFi.mode(WIFI_STA);
+        WiFi.disconnect();
+        attack.startBeacon();
+        webServer.send(200, "text/html", "Beacon Started");
+        Serial.println("Beacon Started.");
+    });
+
+    webServer.on("/stopbeacon", HTTP_GET, [this]() 
+    {
+        attack.stopBeacon();
+        webServer.send(200, "text/html", "Beacon Stoped");
     });
 
     webServer.begin();

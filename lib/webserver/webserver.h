@@ -6,6 +6,7 @@
 #include <ArduinoJson.h>
 #include <LittleFS.h>
 #include <scan.h>
+#include <attack.h>
 
 class ServerManager {
 public:
@@ -16,4 +17,5 @@ private:
     DNSServer dnsServer;
     ESP8266WebServer webServer;
     Scan scan;
+    Attack attack;
 };
