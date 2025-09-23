@@ -76,17 +76,37 @@ void ServerManager::begin(const char *ssid, const char *password)
     webServer.on("/startbeacon", HTTP_GET, [this]() 
     {
         attack.loadSSIDs("ssid_nsfw.txt");
+        webServer.send(200, "text/html", "Beacon Started. You will be disconnected");
+        delay(100);
         WiFi.mode(WIFI_STA);
         WiFi.disconnect();
         attack.startBeacon();
-        webServer.send(200, "text/html", "Beacon Started");
         Serial.println("Beacon Started.");
     });
 
-    webServer.on("/stopbeacon", HTTP_GET, [this]() 
+    webServer.on("/probe", HTTP_GET, [this]() 
     {
-        attack.stopBeacon();
-        webServer.send(200, "text/html", "Beacon Stoped");
+        webServer.send(200, "text/html", "Probe started. You will be disconnected.");
+        delay(100);
+        WiFi.mode(WIFI_STA);
+        WiFi.disconnect();
+        wifi_set_opmode(STATION_MODE);
+        wifi_promiscuous_enable(1);
+        wifi_set_promiscuous_rx_cb(Attack::static_sniffer_callback);
+        Serial.println("Probe Started.");
+
+        int channel = 1;
+        while(true)
+        {
+            wifi_set_channel(channel);
+            channel++;
+            if(channel > 13)
+            {
+                channel = 1;
+            }
+            delay(100);
+        }
+
     });
 
     webServer.begin();
