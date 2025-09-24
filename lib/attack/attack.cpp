@@ -35,15 +35,17 @@ bool Attack::loadSSIDs(const char *filename)
     return true;
 }
 
-void Attack::startBeacon()
+void Attack::startBeacon(int amount)
 {
     if (ssids.empty())
     {
         Serial.println("Custom SSID's Not Filled");
+        return;
     }
-
+    
+    amount = min(amount, 99);
     beacon.active = true;
-    Serial.println("Beacon Starting!");
+    Serial.printf("\nBeacon Starting! with %d amount of AP's", amount);
 
     while (beacon.active)
     {
@@ -51,16 +53,16 @@ void Attack::startBeacon()
         {
             wifi_set_channel(ch);
             beaconPacket[82] = ch;
-            for (const String &ssid : ssids)
+            for (int i = 0; i < amount && ssids.size(); i++)
             {
                 if (!beacon.active)
                     break;
                 memcpy(&beaconPacket[10], mac, 6);
                 memcpy(&beaconPacket[16], mac, 6);
 
-                int ssidLen = ssid.length();
+                int ssidLen = ssids[i].length();
                 beaconPacket[37] = ssidLen;
-                memcpy(&beaconPacket[38], ssid.c_str(), ssidLen);
+                memcpy(&beaconPacket[38], ssids[i].c_str(), ssidLen);
 
                 if (ssidLen < 32)
                 {

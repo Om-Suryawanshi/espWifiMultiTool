@@ -6,6 +6,6 @@ class FileManager
 {
 public:
     FileManager();
-    String listAllFiles();
+    String listAllFiles(String path);
     String getFileContent(String path);
 };

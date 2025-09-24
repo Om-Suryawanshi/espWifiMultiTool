@@ -7,7 +7,7 @@ class Attack
 public:
     Attack();
     // Beacon
-    void startBeacon();
+    void startBeacon(int amount);
     void stopBeacon();
     bool loadSSIDs(const char *filename);
 
@@ -16,7 +16,7 @@ public:
     static void static_sniffer_callback(uint8_t *buff, uint16_t len);
 
     // Deauth
-    void startDeauth(uint8_t bssid[], uint8_t clientMac[], int channel); 
+    void startDeauth(uint8_t bssid[6], uint8_t client_mac[6], int channel); 
     void sendDeauthFrame(uint8_t targetAPMAC[6], uint8_t targetClientMAC[6]);
 
 private:

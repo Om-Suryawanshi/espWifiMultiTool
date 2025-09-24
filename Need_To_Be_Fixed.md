@@ -1,1 +1,0 @@
-DNS Server or website url

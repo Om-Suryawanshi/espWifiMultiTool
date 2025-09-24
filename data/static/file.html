@@ -34,6 +34,10 @@
         a:hover { text-decoration: underline; }
         .file-icon { margin-right: 10px; }
         .back-link { display: block; text-align: center; margin-top: 30px; color: #00aaff; }
+        .clickable-row { cursor: pointer; }
+        /* Breadcrumb Styles */
+        .breadcrumbs { margin-bottom: 20px; font-size: 1.1em; color: #aaa; }
+        .breadcrumbs a { color: #00aaff; }
     </style>
 </head>
 <body>
@@ -41,12 +45,16 @@
         <header>
             <h1>File Manager</h1>
         </header>
+
+        <div class="breadcrumbs" id="breadcrumb-nav"></div>
+
         <div class="storage-info">
             <div class="storage-bar">
                 <div class="storage-bar-fill" id="storage-fill"></div>
             </div>
             <div id="storage-text">Loading...</div>
         </div>
+
         <table>
             <thead>
                 <tr>
@@ -60,6 +68,9 @@
     </div>
 
     <script>
+        // --- NEW: LOGIC FOR FOLDER NAVIGATION ---
+        let currentPath = '/';
+
         function formatBytes(bytes, decimals = 2) {
             if (bytes === 0) return '0 Bytes';
             const k = 1024;
@@ -69,36 +80,53 @@
             return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
         }
 
-        async function fetchFiles() {
+        async function fetchFiles(path) {
+            currentPath = path;
             try {
-                const response = await fetch('/api/files');
+                // Fetch files for the given path
+                const response = await fetch(`/api/files?path=${path}`);
                 const data = await response.json();
 
-                const used = data.usedBytes;
+                // Update breadcrumb navigation
+                updateBreadcrumbs(path);
+
+                // Update storage info (remains the same)
+                const used = data.bytesUsed;
                 const total = data.totalBytes;
                 const percentage = total > 0 ? (used / total) * 100 : 0;
-                
                 document.getElementById('storage-fill').style.width = percentage + '%';
                 document.getElementById('storage-fill').textContent = percentage.toFixed(1) + '%';
                 document.getElementById('storage-text').textContent = `${formatBytes(used)} of ${formatBytes(total)} used`;
 
                 const fileList = document.getElementById('file-list');
-                fileList.innerHTML = '';
+                fileList.innerHTML = '<tr><td colspan="2" style="text-align:center;">Loading...</td></tr>';
 
+                // Sort files to show directories first
+                data.files.sort((a, b) => {
+                    if (a.type === 'dir' && b.type !== 'dir') return -1;
+                    if (a.type !== 'dir' && b.type === 'dir') return 1;
+                    return a.name.localeCompare(b.name);
+                });
+
+                fileList.innerHTML = '';
                 if (data.files.length === 0) {
-                     fileList.innerHTML = '<tr><td colspan="2" style="text-align:center;">No files found.</td></tr>';
+                     fileList.innerHTML = '<tr><td colspan="2" style="text-align:center;">This folder is empty.</td></tr>';
                 }
 
                 data.files.forEach(file => {
                     const row = document.createElement('tr');
                     let nameCell = '';
-                    if (file.type === 'file') {
-                        nameCell = `<td><span class="file-icon">📄</span><a href="/api/view?path=/${file.name}" target="_blank">${file.name}</a></td>`;
-                    } else {
+                    if (file.type === 'dir') {
+                        // Directories are now clickable rows that navigate
+                        row.className = 'clickable-row';
+                        row.onclick = () => fetchFiles(`${path}${file.name}/`);
                         nameCell = `<td><span class="file-icon">📁</span>${file.name}</td>`;
+                    } else {
+                        // Files are links that open in a new tab
+                        nameCell = `<td><span class="file-icon">📄</span><a href="/api/view?path=${path}${file.name}" target="_blank">${file.name}</a></td>`;
                     }
                     
-                    const sizeCell = `<td>${formatBytes(file.size)}</td>`;
+                    const sizeCell = `<td>${file.type === 'file' ? formatBytes(file.size) : '--'}</td>`;
                     row.innerHTML = nameCell + sizeCell;
                     fileList.appendChild(row);
                 });
@@ -108,7 +136,34 @@
             }
         }
 
-        window.addEventListener('load', fetchFiles);
+        function updateBreadcrumbs(path) {
+            const breadcrumbNav = document.getElementById('breadcrumb-nav');
+            breadcrumbNav.innerHTML = '';
+            
+            let currentLink = '';
+            const parts = path.split('/').filter(p => p.length > 0);
+
+            // Add the root/home link
+            const homeLink = document.createElement('a');
+            homeLink.href = '#';
+            homeLink.textContent = 'Root';
+            homeLink.onclick = (e) => { e.preventDefault(); fetchFiles('/'); };
+            breadcrumbNav.appendChild(homeLink);
+
+            // Add links for each part of the path
+            parts.forEach(part => {
+                currentLink += `/${part}`;
+                breadcrumbNav.append(' / ');
+                const partLink = document.createElement('a');
+                partLink.href = '#';
+                partLink.textContent = part;
+                const pathToFetch = currentLink + '/';
+                partLink.onclick = (e) => { e.preventDefault(); fetchFiles(pathToFetch); };
+                breadcrumbNav.appendChild(partLink);
+            });
+        }
+        // Fetch root directory files when the page loads
+        window.addEventListener('load', () => fetchFiles('/'));
     </script>
 </body>
 </html>

@@ -4,7 +4,7 @@ FileManager::FileManager()
 {
 }
 
-String FileManager::listAllFiles()
+String FileManager::listAllFiles(String path)
 {
     DynamicJsonDocument doc(2048);
     FSInfo fs_info;
@@ -12,23 +12,24 @@ String FileManager::listAllFiles()
     doc["totalBytes"] = fs_info.totalBytes;
     doc["bytesUsed"] = fs_info.usedBytes;
     JsonArray files = doc.createNestedArray("files");
-
-    Dir dir = LittleFS.openDir("/");
-    while (dir.next())
+    if (LittleFS.exists(path))
     {
-        JsonObject file = files.createNestedObject();
-        file["name"] = dir.fileName();
-        file["size"] = dir.fileSize();
-        if (dir.fileSize() > 0 || dir.fileName().lastIndexOf('.') > 0)
+        Dir dir = LittleFS.openDir(path);
+        while (dir.next())
         {
-            file["type"] = "file";
-        }
-        else
-        {
-            file["type"] = "dir";
+            JsonObject file = files.createNestedObject();
+            file["name"] = dir.fileName();
+            file["size"] = dir.fileSize();
+            if (dir.fileSize() > 0 || dir.fileName().lastIndexOf('.') > 0)
+            {
+                file["type"] = "file";
+            }
+            else
+            {
+                file["type"] = "dir";
+            }
         }
     }
-
     String output;
     serializeJson(doc, output);
     return output;

@@ -15,7 +15,7 @@ void ServerManager::begin()
     Serial.print("AP IP address: ");
     Serial.println(apIP);
 
-    dnsServer.start(DNS_PORT, "wifi.tools", apIP); // http://www.wifitools/scan
+    dnsServer.start(DNS_PORT, "wifi.tools", apIP); // http://www.wifi.tools/
 
     //Index
     webServer.on("/", HTTP_GET, [this]() 
@@ -43,7 +43,12 @@ void ServerManager::begin()
 
     webServer.on("/api/files", HTTP_GET, [this]() 
     {
-        String json = fileManger.listAllFiles();
+        String path = "/";
+        if(webServer.hasArg("path"))
+        {
+            path = webServer.arg("path");
+        }
+        String json = fileManger.listAllFiles(path);
         webServer.send(200, "application/json", json);
     });
 
@@ -104,14 +109,50 @@ void ServerManager::begin()
         } 
     });
 
-    webServer.on("/beacon", HTTP_GET, [this]()
+    webServer.on("/beacon", HTTP_GET, [this]() 
     {
-        attack.loadSSIDs("ssid_nsfw.txt");
-        webServer.send(200, "text/html", "Beacon Started. You will be disconnected");
+        File file = LittleFS.open("/static/beacon.html", "r");
+        if(!file)
+        {
+            webServer.send(404, "text/html", "Beacon html file not found");
+            return;
+        }
+        webServer.streamFile(file, "text/html");
+        file.close();
+    });
+
+    webServer.on("/api/beacon", HTTP_POST, [this]()
+    {
+        StaticJsonDocument<128> doc;
+        DeserializationError error = deserializeJson(doc, webServer.arg("plain"));
+        if (error) {
+            webServer.send(400, "text/plain", "Bad Request: Invalid JSON");
+            return;
+        }
+
+        if (!doc.containsKey("type") || !doc.containsKey("amount")) {
+            webServer.send(400, "text/plain", "Bad Request: Missing 'type' or 'amount'");
+            return;
+        }
+        String type = doc["type"].as<String>();
+        int amount = doc["amount"].as<int>();
+        if(type == "nsfw")
+        {
+            attack.loadSSIDs("ssid_nsfw.txt");
+        }
+        else if(type == "sfw")
+        {
+            attack.loadSSIDs("ssid.txt");
+        }
+        else
+        {
+            attack.loadSSIDs("ssid.txt");
+        }
+        webServer.send(200, "text/plain", "Beacon Started. You will be disconnected.");
         delay(100);
         WiFi.mode(WIFI_STA);
         WiFi.disconnect();
-        attack.startBeacon();
+        attack.startBeacon(amount);
         Serial.println("Beacon Started."); 
     });
 
