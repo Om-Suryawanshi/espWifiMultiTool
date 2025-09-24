@@ -3,9 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yoo ma niggas</title>
+    <title>ESP8266 Pentest Tool</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 900px;
+            width: 100%;
+            text-align: center;
+        }
+        header h1 {
+            font-size: 2.5rem;
+            color: #00aaff;
+            margin-bottom: 10px;
+        }
+        header p {
+            font-size: 1.1rem;
+            color: #888;
+            margin-bottom: 40px;
+        }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+        }
+        .card {
+            background-color: #2c2c2c;
+            border: 1px solid #444;
+            border-radius: 12px;
+            padding: 25px;
+            text-align: left;
+            text-decoration: none;
+            color: #e0e0e0;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 170, 255, 0.2);
+        }
+        .card-icon {
+            font-size: 2rem;
+            margin-bottom: 15px;
+        }
+        .card h2 {
+            font-size: 1.25rem;
+            margin: 0 0 10px 0;
+            color: #fff;
+        }
+        .card p {
+            font-size: 0.9rem;
+            color: #aaa;
+            line-height: 1.5;
+        }
+    </style>
 </head>
 <body>
-    Hello World!
+    <div class="container">
+        <header>
+            <h1>ESP8266 Pentest Tool</h1>
+            <p>A collection of network analysis and security tools.</p>
+        </header>
+        <div class="grid-container">
+            <a href="/filesystem" class="card">
+                <div class="card-icon">📁</div>
+                <h2>File Manager</h2>
+                <p>Browse and view files stored on the device's LittleFS filesystem.</p>
+            </a>
+            <a href="/scan" class="card">
+                <div class="card-icon">📡</div>
+                <h2>Wi-Fi Scanner</h2>
+                <p>Discover networks, view clients, and launch deauth attacks.</p>
+            </a>
+            <a href="/beacon" class="card">
+                <div class="card-icon">📢</div>
+                <h2>Beacon Spammer</h2>
+                <p>Broadcast hundreds of fake Wi-Fi networks to flood scan lists.</p>
+            </a>
+            <a href="/probe" class="card">
+                <div class="card-icon">🔍</div>
+                <h2>Probe Sniffer</h2>
+                <p>Listen for probe requests to see what networks devices are looking for.</p>
+            </a>
+        </div>
+    </div>
 </body>
 </html>

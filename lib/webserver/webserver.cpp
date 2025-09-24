@@ -15,18 +15,49 @@ void ServerManager::begin()
     Serial.print("AP IP address: ");
     Serial.println(apIP);
 
-    dnsServer.start(DNS_PORT, "wifitools", apIP);
+    dnsServer.start(DNS_PORT, "wifi.tools", apIP); // http://www.wifitools/scan
 
-    // Index
-    webServer.on("/", HTTP_GET, [this]()
-                 {
+    //Index
+    webServer.on("/", HTTP_GET, [this]() 
+    {
         File file = LittleFS.open("/static/index.html", "r");
+        if(!file)
+        {
+            webServer.send(404, "text/html", "Index not found");
+        }
+        webServer.streamFile(file, "text/html");
+        file.close();
+    });
+
+    // File System
+    webServer.on("/filesystem", HTTP_GET, [this]()
+    {
+        File file = LittleFS.open("/static/file.html", "r");
         if(!file)
         {
             webServer.send(500, "text/html", "Index html file not found");
         }
         webServer.streamFile(file, "text/html");
-        file.close(); });
+        file.close(); 
+    });
+
+    webServer.on("/api/files", HTTP_GET, [this]() 
+    {
+        String json = fileManger.listAllFiles();
+        webServer.send(200, "application/json", json);
+    });
+
+    webServer.on("/api/view", HTTP_GET, [this]() 
+    {
+        if(!webServer.hasArg("path"))
+        {
+            webServer.send(400, "text/plain", "Bad Request: 'path' arg missing");
+            return;
+        }
+        String path = webServer.arg("path");
+        String content = fileManger.getFileContent(path);
+        webServer.send(200, "application/json", content);
+    });
 
     // Scan
     webServer.on("/scan", HTTP_GET, [this]()
@@ -73,18 +104,19 @@ void ServerManager::begin()
         } 
     });
 
-    webServer.on("/startbeacon", HTTP_GET, [this]()
-                 {
+    webServer.on("/beacon", HTTP_GET, [this]()
+    {
         attack.loadSSIDs("ssid_nsfw.txt");
         webServer.send(200, "text/html", "Beacon Started. You will be disconnected");
         delay(100);
         WiFi.mode(WIFI_STA);
         WiFi.disconnect();
         attack.startBeacon();
-        Serial.println("Beacon Started."); });
+        Serial.println("Beacon Started."); 
+    });
 
     webServer.on("/probe", HTTP_GET, [this]()
-                 {
+    {
         webServer.send(200, "text/html", "Probe started. You will be disconnected.");
         delay(100);
         WiFi.mode(WIFI_STA);
@@ -104,7 +136,8 @@ void ServerManager::begin()
                 channel = 1;
             }
             delay(100);
-        } });
+        } 
+    });
 
     webServer.on("/deauth", HTTP_GET, [this]()
     {

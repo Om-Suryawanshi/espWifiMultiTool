@@ -1,27 +1,48 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wi-Fi Scanner</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .container { max-width: 800px; margin: auto; }
-        h1 { text-align: center; }
-        #status-message { text-align: center; font-style: italic; color: #555; margin-bottom: 15px;}
-        #networks-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        #networks-table th, #networks-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        #networks-table th { background-color: #f2f2f2; }
-        .spinner { border: 4px solid rgba(0, 0, 0, 0.1); width: 36px; height: 36px; border-radius: 50%; border-left-color: #09f; animation: spin 1s ease infinite; margin: 20px auto; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: #2c2c2c;
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid #444;
+        }
+        header { text-align: center; margin-bottom: 30px; }
+        header h1 { font-size: 2.2rem; color: #00aaff; margin: 0; }
+        #status-message { text-align: center; color: #aaa; margin-top: 20px; min-height: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #444; }
+        th { background-color: #3a3a3a; white-space: nowrap; }
+        tr:hover { background-color: #3f3f3f; }
+        .spinner { border: 4px solid rgba(255, 255, 255, 0.1); width: 28px; height: 28px; border-radius: 50%; border-left-color: #00aaff; animation: spin 1s ease infinite; margin: 20px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        button { padding: 8px; font-size: 14px; cursor: pointer; }
-        #rescan-button { display: block; width: 100%; padding: 10px; font-size: 16px; margin-top: 20px; }
+        button { border: none; border-radius: 5px; padding: 8px 12px; font-size: 14px; cursor: pointer; transition: background-color 0.2s ease; }
+        #rescan-button { display: block; width: 100%; padding: 12px; font-size: 16px; margin-top: 20px; background-color: #00aaff; color: white; }
+        #rescan-button:disabled { background-color: #555; cursor: not-allowed; }
+        .deauth-button { background-color: #ff4444; color: white; }
+        .deauth-button:hover { background-color: #e60000; }
+        .back-link { display: block; text-align: center; margin-top: 30px; color: #00aaff; }
     </style>
 </head>
-
 <body>
     <div class="container">
-        <h1>Wi-Fi Scan</h1>
-
-        <div id="status-message">Loading...</div>
+        <header>
+            <h1>Wi-Fi Scanner & Deauther</h1>
+        </header>
+        
         <div class="spinner-container" style="display: none;">
             <div class="spinner"></div>
         </div>
@@ -31,7 +52,7 @@
                 <tr>
                     <th>SSID</th>
                     <th>BSSID</th>
-                    <th>Channel</th>
+                    <th>Ch</th>
                     <th>RSSI</th>
                     <th>Clients</th>
                     <th>Actions</th>
@@ -39,8 +60,10 @@
             </thead>
             <tbody id="networks-list"></tbody>
         </table>
-
+        
+        <div id="status-message"></div>
         <button id="rescan-button">Rescan</button>
+        <a href="/" class="back-link">← Back to Dashboard</a>
     </div>
 
     <script>
@@ -60,7 +83,7 @@
 
                 if (response.status === 202) {
                     statusMessage.textContent = 'Scan in progress... This can take up to 15 seconds.';
-                    setTimeout(fetchScanResults, 3000); // Poll again after 3 seconds
+                    setTimeout(fetchScanResults, 3000);
                 } else if (response.ok) {
                     displayNetworks(data.networks);
                     statusMessage.textContent = `Scan complete. Found ${data.networks.length} networks.`;
@@ -72,22 +95,21 @@
                     rescanButton.disabled = false;
                 }
             } catch (error) {
-                statusMessage.textContent = 'Failed to fetch scan results. Please try again.';
+                statusMessage.textContent = 'Failed to fetch results. The device may be busy. Please wait and try again.';
                 spinnerContainer.style.display = 'none';
                 rescanButton.disabled = false;
-                console.error('Error fetching data:', error);
             }
         }
 
         async function startRescan() {
             statusMessage.textContent = 'Sending scan request...';
+            spinnerContainer.style.display = 'block';
             rescanButton.disabled = true;
             try {
                 const response = await fetch('/api/scan', { method: 'POST' });
                 const data = await response.json();
-                
                 if (data.status === 'scan_req_initiated' || data.status === 'scan_req_processing') {
-                    fetchScanResults(); // Start the polling loop
+                    fetchScanResults();
                 } else {
                     statusMessage.textContent = 'Failed to start a new scan.';
                     rescanButton.disabled = false;
@@ -97,61 +119,51 @@
                 rescanButton.disabled = false;
             }
         }
-        
-        // FIX #2: The OLD displayNetworks function was here and has been DELETED.
-        // This is the one, correct version.
+
         function displayNetworks(networks) {
             networksList.innerHTML = '';
             if (!networks || networks.length === 0) {
-                const row = document.createElement('tr');
-                row.innerHTML = `<td colspan="6" style="text-align: center;">No networks found.</td>`;
-                networksList.appendChild(row);
+                networksList.innerHTML = `<tr><td colspan="6" style="text-align: center;">No networks found.</td></tr>`;
                 return;
             }
 
             networks.forEach(network => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${network.ssid}</td>
+                    <td>${network.ssid || "<i>Hidden</i>"}</td>
                     <td>${network.bssid}</td>
                     <td>${network.channel}</td>
                     <td>${network.rssi}</td>
                     <td>${network.clients}</td>
-                    <td>
-                        <button onclick="deauthNetwork('${network.bssid}', ${network.channel})">Deauth</button>
-                    </td>
+                    <td><button class="deauth-button" onclick="deauthNetwork('${network.bssid}', ${network.channel})">Deauth</button></td>
                 `;
                 networksList.appendChild(row);
             });
         }
 
         async function deauthNetwork(bssid, channel) {
-            if (!confirm(`Are you sure you want to run a deauth attack on ${bssid}? This is for testing your OWN network only.`)) {
+            if (!confirm(`Are you sure you want to run a deauth attack on ${bssid}?\n\nThis is for testing your OWN network only.`)) {
                 return;
             }
             
             statusMessage.textContent = `Starting deauth attack on ${bssid}...`;
             spinnerContainer.style.display = 'block';
+            rescanButton.disabled = true;
 
             try {
-                const response = await fetch('/api/deauth', {
+                await fetch('/api/deauth', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ bssid: bssid, channel: channel })
                 });
-                const data = await response.json();
-                if (data.status === 'deauth_started') {
-                    statusMessage.textContent = 'Deauth attack initiated. The ESP8266 is now dedicated to the attack and the web server is unresponsive.';
-                    // No need to hide spinner, the page is now effectively dead until the ESP8266 is reset
-                }
+                statusMessage.textContent = 'Deauth attack initiated. The ESP8266 is now dedicated to the attack and the web server is unresponsive.';
             } catch (error) {
                 statusMessage.textContent = 'Failed to start deauth attack. The ESP might have become unresponsive.';
-                console.error('Deauth error:', error);
             }
         }
 
         rescanButton.addEventListener('click', startRescan);
-        fetchScanResults(); // Start a scan on page load
+        fetchScanResults();
     </script>
 </body>
 </html>

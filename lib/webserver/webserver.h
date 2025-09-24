@@ -7,6 +7,7 @@
 #include <LittleFS.h>
 #include <scan.h>
 #include <attack.h>
+#include <file.h>
 
 class ServerManager
 {
@@ -18,6 +19,7 @@ public:
 private:
     DNSServer dnsServer;
     ESP8266WebServer webServer;
+    FileManager fileManger;
     Scan scan;
     Attack attack;
     char ssid[32] = "nop";
