@@ -41,7 +41,7 @@ embed into other projects.
    pio device monitor
 ---
 
-##Contributing
+## Contributing
 1. Fork the repo.
 2. Create a branch for your change: git checkout -b feature/your-feature.
 3. Commit with clear messages.
