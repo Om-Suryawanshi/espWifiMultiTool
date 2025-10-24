@@ -5,7 +5,7 @@ auto-reconnect, and simple fallback behavior. Designed to be small and easy to
 embed into other projects.
 
 [License: MIT](LICENSE) · [PlatformIO](https://platformio.org)
-
+Inspired from - https://github.com/SpacehuhnTech/esp8266_deauther
 ---
 
 ## Features
